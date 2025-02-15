@@ -2,9 +2,9 @@ class MutUTOptimizer extends Mutator;
 
 enum EMasterServer
 {
-	MS_333Networks,
+	MS_333networks,
 	MS_Errorist,
-	MS_333NetworksAndErrorist,
+	MS_333networksAndErrorist,
 	MS_OpenSpy
 };
 
@@ -37,7 +37,7 @@ static function FillPlayInfo(PlayInfo PlayInfo)
 	PlayInfo.AddSetting("UTOptimizer", "bFixResolution", "Fix resolution override", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "bFix90FPS", "Fix 90FPS limit", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "bFixMasterServer", "Fix player's master server", 0, 1, "Check");
-	PlayInfo.AddSetting("UTOptimizer", "SelectedMasterServer", "Master server(s) to use:", 0, 1, "Select", "MS_333Networks;333Networks;MS_Errorist;Errorist;MS_333NetworksAndErrorist;333Networks+Errorist;MS_OpenSpy;OpenSpy");
+	PlayInfo.AddSetting("UTOptimizer", "SelectedMasterServer", "Master server(s) to use:", 0, 1, "Select", "MS_333networks;333networks;MS_Errorist;Errorist;MS_333networksAndErrorist;333networks+Errorist;MS_OpenSpy;OpenSpy");
 }
 
 static event string GetDescriptionText(string PropName)
@@ -52,7 +52,7 @@ static event string GetDescriptionText(string PropName)
 		case "bFixResolution": return "DesiredRefreshRate=0, OverrideDesktopRefreshRate=False; prevents overriding desktop resolution which can force low refresh rate";
 		case "bFix90FPS": return "If MaxClientFrameRate=90, set to 200";
 		case "bFixMasterServer": return "If a player has at least one Epic master server, replace with the following from the list.";
-		case "SelectedMasterServer": return "333Networks/Errorist lower ping to EU, OpenSpy lower ping to NA";
+		case "SelectedMasterServer": return "333networks/Errorist lower ping to EU, OpenSpy lower ping to NA";
 	}
 
 	return Super.GetDescriptionText(PropName);
@@ -140,7 +140,7 @@ simulated function Tick(float dt)
 
 				if (bHasEpicMasterServer)
 				{
-					if (SelectedMasterServer == MS_333Networks)
+					if (SelectedMasterServer == MS_333networks)
 					{
 						class'IpDrv.MasterServerLink'.default.MasterServerList.Length = 1;
 						class'IpDrv.MasterServerLink'.default.MasterServerList[0].Address = "ut2004master.333networks.com";
@@ -154,7 +154,7 @@ simulated function Tick(float dt)
 						class'IpDrv.MasterServerLink'.default.MasterServerList[0].Port = 28902;
 						class'IpDrv.MasterServerLink'.static.StaticSaveConfig();
 					}
-					else if (SelectedMasterServer == MS_333NetworksAndErrorist)
+					else if (SelectedMasterServer == MS_333networksAndErrorist)
 					{
 						class'IpDrv.MasterServerLink'.default.MasterServerList.Length = 2;
 						class'IpDrv.MasterServerLink'.default.MasterServerList[0].Address = "ut2004master.333networks.com";
