@@ -8,6 +8,14 @@ enum EMasterServer
 	MS_OpenSpy
 };
 
+enum EPropType
+{
+    PT_bool,
+    PT_string,
+    PT_int,
+    PT_float
+};
+
 var config bool bCollectGarbage;
 var config bool bSaveCache;
 var config bool bFixCacheSizeMegs;
@@ -17,12 +25,14 @@ var config bool bFixResolution;
 var config bool bFix90FPS;
 var config bool bFixMasterServer;
 var config EMasterServer SelectedMasterServer;
-//var LevelInfo levelInfo;
+var config bool bDebugClient;
+
+var bool bModified;
 
 replication
 {
 	reliable if (ROLE == ROLE_Authority)
-		bCollectGarbage, bSaveCache, bFixCacheSizeMegs, bFixReduceMouseLag, bFixNetSettings, bFixResolution, bFix90FPS, bFixMasterServer, SelectedMasterServer;
+		bCollectGarbage, bSaveCache, bFixCacheSizeMegs, bFixReduceMouseLag, bFixNetSettings, bFixResolution, bFix90FPS, bFixMasterServer, SelectedMasterServer, bDebugClient;
 }
 
 static function FillPlayInfo(PlayInfo PlayInfo)
@@ -38,6 +48,7 @@ static function FillPlayInfo(PlayInfo PlayInfo)
 	PlayInfo.AddSetting("UTOptimizer", "bFix90FPS", "Fix 90FPS limit", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "bFixMasterServer", "Fix player's master server", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "SelectedMasterServer", "Master server(s) to use:", 0, 1, "Select", "MS_333networks;333networks;MS_Errorist;Errorist;MS_333networksAndErrorist;333networks+Errorist;MS_OpenSpy;OpenSpy");
+	PlayInfo.AddSetting("UTOptimizer", "bDebugClient", "Message the client if config has been modified", 0, 1, "Check");
 }
 
 static event string GetDescriptionText(string PropName)
@@ -53,9 +64,45 @@ static event string GetDescriptionText(string PropName)
 		case "bFix90FPS": return "If MaxClientFrameRate=90, set to 200";
 		case "bFixMasterServer": return "If a player has at least one Epic master server, replace with the following from the list.";
 		case "SelectedMasterServer": return "333networks/Errorist lower ping to EU, OpenSpy lower ping to NA";
+		case "bDebugClient": return "Message the client if config has been modified";
 	}
 
 	return Super.GetDescriptionText(PropName);
+}
+
+simulated function bool SetProperty(PlayerController PC, string PackageProp, string Prop, EPropType PropType, string value)
+{
+    local string cmdArgs;
+    local string existingValue;
+
+    cmdArgs = PackageProp$" "$Prop;
+    existingValue = PC.ConsoleCommand("get "$cmdArgs);
+    switch(PropType)
+    {
+        case PT_bool:
+            if(bool(existingValue) != bool(value))
+                bModified = true;
+            break;
+        case PT_string:
+            if(existingValue != value)
+                bModified = true;
+            break;
+        case PT_int:
+            if(int(existingValue) != int(value))
+                bModified = true;
+            break;
+        case PT_bool:
+            if(bool(existingValue) != bool(value))
+                bModified = true;
+            break;
+    }
+
+    if(bModified)
+    {
+        PC.ConsoleCommand("set "$cmdArgs$" "$value);
+    }
+
+    return bModified;
 }
 
 simulated function Tick(float dt)
@@ -68,6 +115,7 @@ simulated function Tick(float dt)
 	super.Tick(dt);
 	if(level.NetMode != NM_DedicatedServer)
 	{
+        bModified = false;
 		PC = Level.GetLocalPlayerController();
 		if(PC != None)
 		{
@@ -77,50 +125,60 @@ simulated function Tick(float dt)
 			}
 			if(bSaveCache)
 			{
-				PC.ConsoleCommand("set Core.System PurgeCacheDays 0");
+                SetProperty(PC, "Core.System", "PurgeCacheDays", PT_int, "0");
 			}
 			if(bFixCacheSizeMegs)
 			{
-				PC.ConsoleCommand("set Engine.GameEngine CacheSizeMegs 1");
+                SetProperty(PC, "Engine.GameEngine", "CacheSizeMegs", PT_int, "1");
 			}
 			if(bFixReduceMouseLag)
 			{
-				PC.ConsoleCommand("set D3DDrv.D3DRenderDevice ReduceMouseLag False");
-				PC.ConsoleCommand("set D3D9Drv.D3D9RenderDevice ReduceMouseLag False");
-				PC.ConsoleCommand("set OpenGLDrv.OpenGLRenderDevice ReduceMouseLag False");
-				PC.ConsoleCommand("set PixoDrv.PixoRenderDevice ReduceMouseLag False");
+                SetProperty(PC, "D3DDrv.D3DRenderDevice", "ReduceMouseLag", PT_bool, "false");
+                SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "ReduceMouseLag", PT_bool, "false");
+                SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "ReduceMouseLag", PT_bool, "false");
+                SetProperty(PC, "PixoDrv.PixoRenderDevice", "ReduceMouseLag", PT_bool, "false");
 			}
 			if(bFixNetSettings)
 			{
-				PC.ConsoleCommand("set IpDrv.TcpNetDriver KeepAliveTime 0.2");
-				PC.ConsoleCommand("set IpDrv.TcpNetDriver MaxClientRate 1000000");
-				PC.ConsoleCommand("set IpDrv.TcpNetDriver MaxInternetClientRate 1000000");
-				class'Engine.PlayerController'.default.bDynamicNetSpeed = False;
-				class'Engine.PlayerController'.static.StaticSaveConfig();
-				PC.ConsoleCommand("set Engine.Player ConfiguredInternetSpeed 1000000");
-				PC.ConsoleCommand("set Engine.Player ConfiguredLanSpeed 1000000");
-				PC.ConsoleCommand("Netspeed 1000000");
-				PC.ConsoleCommand("set XInterface.GUIController MaxSimultaneousPings 200");
-				PC.ConsoleCommand("set GUI2K4.UT2k4ServerBrowser bStandardServersOnly False");
+                SetProperty(PC, "IpDrv.TcpNetDriver", "KeepAliveTime", PT_float, "0.2");
+                SetProperty(PC, "IpDrv.TcpNetDriver", "MaxClientRate", PT_int, "1000000");
+                SetProperty(PC, "IpDrv.TcpNetDriver", "MaxInternetClientRate", PT_int, "1000000");
+                if(class'Engine.PlayerController'.default.bDynamicNetSpeed)
+                {
+                    class'Engine.PlayerController'.default.bDynamicNetSpeed = False;
+                    class'Engine.PlayerController'.static.StaticSaveConfig();
+                    bModified=true;
+                }
+                if(class'Engine.Player'.default.ConfiguredInternetSpeed != 1000000)
+                {
+                    PC.ConsoleCommand("Netspeed 1000000");
+                    bModified=true;
+                }
+                SetProperty(PC, "Engine.Player", "ConfiguredInternetSpeed", PT_int, "1000000");
+                SetProperty(PC, "Engine.Player", "ConfiguredLanSpeed", PT_int, "1000000");
+                SetProperty(PC, "XInterface.GUIController", "MaxSimultaneousPings", PT_int, "200");
+                SetProperty(PC, "GUI2K4.UT2k4ServerBrowser", "bStandardServersOnly", PT_bool, "False");
 			}
 			if(bFixResolution)
 			{
-				PC.ConsoleCommand("set D3DDrv.D3DRenderDevice DesiredRefreshRate 0");
-				PC.ConsoleCommand("set D3DDrv.D3DRenderDevice OverrideDesktopRefreshRate False");
-				PC.ConsoleCommand("set D3D9Drv.D3D9RenderDevice DesiredRefreshRate 0");
-				PC.ConsoleCommand("set D3D9Drv.D3D9RenderDevice OverrideDesktopRefreshRate False");
-				PC.ConsoleCommand("set OpenGLDrv.OpenGLRenderDevice DesiredRefreshRate 0");
-				PC.ConsoleCommand("set OpenGLDrv.OpenGLRenderDevice OverrideDesktopRefreshRate False");
-				PC.ConsoleCommand("set PixoDrv.PixoRenderDevice DesiredRefreshRate 0");
+                SetProperty(PC, "D3DDrv.D3DRenderDevice", "DesiredRefreshRate", PT_int, "0");
+                SetProperty(PC, "D3DDrv.D3DRenderDevice", "OverrideDesktopRefreshRate", PT_bool, "False");
+                SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "DesiredRefreshRate", PT_int, "0");
+                SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "OverrideDesktopRefreshRate", PT_bool, "False");
+                SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "DesiredRefreshRate", PT_int, "0");
+                SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "OverrideDesktopRefreshRate", PT_bool, "False");
 			}
 			if(bFix90FPS)
 			{
 				MaxFPS = class'Engine.LevelInfo'.default.MaxClientFrameRate;
 
-				if (MaxFPS == 90)
+                // also check for 200 to fix previous setting from old version of utoptimizer
+                // 60hz + 200 max fps = aids
+				if (MaxFPS == 90 || MaxFPS == 200)
 				{
-					class'Engine.LevelInfo'.default.MaxClientFrameRate = 200;
+					class'Engine.LevelInfo'.default.MaxClientFrameRate = 240;
 					class'Engine.LevelInfo'.static.StaticSaveConfig();
+                    bModified=true;
 				}
 			}
 			if (bFixMasterServer)
@@ -146,6 +204,7 @@ simulated function Tick(float dt)
 						class'IpDrv.MasterServerLink'.default.MasterServerList[0].Address = "ut2004master.333networks.com";
 						class'IpDrv.MasterServerLink'.default.MasterServerList[0].Port = 28902;
 						class'IpDrv.MasterServerLink'.static.StaticSaveConfig();
+                        bModified=true;
 					}
 					else if (SelectedMasterServer == MS_Errorist)
 					{
@@ -153,6 +212,7 @@ simulated function Tick(float dt)
 						class'IpDrv.MasterServerLink'.default.MasterServerList[0].Address = "ut2004master.errorist.eu";
 						class'IpDrv.MasterServerLink'.default.MasterServerList[0].Port = 28902;
 						class'IpDrv.MasterServerLink'.static.StaticSaveConfig();
+                        bModified=true;
 					}
 					else if (SelectedMasterServer == MS_333networksAndErrorist)
 					{
@@ -162,6 +222,7 @@ simulated function Tick(float dt)
 						class'IpDrv.MasterServerLink'.default.MasterServerList[1].Address = "ut2004master.errorist.eu";
 						class'IpDrv.MasterServerLink'.default.MasterServerList[1].Port = 28902;
 						class'IpDrv.MasterServerLink'.static.StaticSaveConfig();
+                        bModified=true;
 					}
 					else if (SelectedMasterServer == MS_OpenSpy)
 					{
@@ -169,6 +230,7 @@ simulated function Tick(float dt)
 						class'IpDrv.MasterServerLink'.default.MasterServerList[0].Address = "utmaster.openspy.net";
 						class'IpDrv.MasterServerLink'.default.MasterServerList[0].Port = 28902;
 						class'IpDrv.MasterServerLink'.static.StaticSaveConfig();
+                        bModified=true;
 					}
 					else
 					{
@@ -179,6 +241,9 @@ simulated function Tick(float dt)
 				{
 					Log("Warning: Default Epic master server not found. Skipping master server modification.");
 				}
+
+                if(bModified)
+                    PC.ClientMessage("Settings have been optimized!");
 			}
 			Disable('Tick');
 		}
@@ -204,4 +269,6 @@ defaultproperties
     bFix90FPS=true
     bFixMasterServer=true
     SelectedMasterServer=MS_OpenSpy
+
+    bDebugClient=false
 }
