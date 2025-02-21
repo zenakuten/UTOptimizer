@@ -44,7 +44,7 @@ static function FillPlayInfo(PlayInfo PlayInfo)
 	PlayInfo.AddSetting("UTOptimizer", "bFixCacheSizeMegs", "Fix CacheSizeMegs", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "bFixReduceMouseLag", "Fix ReduceMouseLag", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "bFixNetSettings", "Fix net settings", 0, 1, "Check");
-	PlayInfo.AddSetting("UTOptimizer", "bFixRenderer", "Fix resolution override", 0, 1, "Check");
+	PlayInfo.AddSetting("UTOptimizer", "bFixRenderer", "Fix renderer settings", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "bFix90FPS", "Fix 90FPS limit", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "bFixMasterServer", "Fix player's master server", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "SelectedMasterServer", "Master server(s) to use:", 0, 1, "Select", "MS_333networks;333networks;MS_Errorist;Errorist;MS_333networksAndErrorist;333networks+Errorist;MS_OpenSpy;OpenSpy");
@@ -60,7 +60,7 @@ static event string GetDescriptionText(string PropName)
 		case "bFixCacheSizeMegs": return "CacheSizeMegs=1; reduce OOM crashes";
 		case "bFixReduceMouseLag": return "ReduceMouseLag=False; reduces input latency at same FPS while also increasing FPS";
 		case "bFixNetSettings": return "KeepAliveTime=0.2, Max(Internet)ClientRate=1000000, bDynamicNetSpeed=False, Netspeed 1000000, MaxSimultaneousPings=200, bStandardServersOnly=False";
-		case "bFixRenderer": return "DesiredRefreshRate=0, OverrideDesktopRefreshRate=False, UseBVO=True for >30% higher CPU FPS in OpenGL";
+		case "bFixRenderer": return "DesiredRefreshRate=0, OverrideDesktopRefreshRate=False, UseVSync=False, UseBVO=True for >30% higher CPU FPS in OpenGL";
 		case "bFix90FPS": return "If MaxClientFrameRate<120 or is 200, set to 240";
 		case "bFixMasterServer": return "If a player has at least one Epic master server, replace with the following from the list.";
 		case "SelectedMasterServer": return "333networks/Errorist lower ping to EU, OpenSpy lower ping to NA";
