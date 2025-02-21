@@ -21,7 +21,7 @@ var config bool bSaveCache;
 var config bool bFixCacheSizeMegs;
 var config bool bFixReduceMouseLag;
 var config bool bFixNetSettings;
-var config bool bFixResolution;
+var config bool bFixRenderer;
 var config bool bFix90FPS;
 var config bool bFixMasterServer;
 var config EMasterServer SelectedMasterServer;
@@ -32,7 +32,7 @@ var bool bModified;
 replication
 {
 	reliable if (ROLE == ROLE_Authority)
-		bCollectGarbage, bSaveCache, bFixCacheSizeMegs, bFixReduceMouseLag, bFixNetSettings, bFixResolution, bFix90FPS, bFixMasterServer, SelectedMasterServer, bDebugClient;
+		bCollectGarbage, bSaveCache, bFixCacheSizeMegs, bFixReduceMouseLag, bFixNetSettings, bFixRenderer, bFix90FPS, bFixMasterServer, SelectedMasterServer, bDebugClient;
 }
 
 static function FillPlayInfo(PlayInfo PlayInfo)
@@ -44,7 +44,7 @@ static function FillPlayInfo(PlayInfo PlayInfo)
 	PlayInfo.AddSetting("UTOptimizer", "bFixCacheSizeMegs", "Fix CacheSizeMegs", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "bFixReduceMouseLag", "Fix ReduceMouseLag", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "bFixNetSettings", "Fix net settings", 0, 1, "Check");
-	PlayInfo.AddSetting("UTOptimizer", "bFixResolution", "Fix resolution override", 0, 1, "Check");
+	PlayInfo.AddSetting("UTOptimizer", "bFixRenderer", "Fix resolution override", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "bFix90FPS", "Fix 90FPS limit", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "bFixMasterServer", "Fix player's master server", 0, 1, "Check");
 	PlayInfo.AddSetting("UTOptimizer", "SelectedMasterServer", "Master server(s) to use:", 0, 1, "Select", "MS_333networks;333networks;MS_Errorist;Errorist;MS_333networksAndErrorist;333networks+Errorist;MS_OpenSpy;OpenSpy");
@@ -57,11 +57,11 @@ static event string GetDescriptionText(string PropName)
 	{
 		case "bCollectGarbage":	return "obj garbage; may help free some memory";
 		case "bSaveCache": return "PurgeCacheDays=0; prevent redownloading every 30 days";
-		case "bFixCacheSizeMegs": return "CacheSizeMegs=1; reduces OOM crashes";
-		case "bFixReduceMouseLag": return "ReduceMouseLag=False; reduces input latency and increases FPS";
+		case "bFixCacheSizeMegs": return "CacheSizeMegs=1; reduce OOM crashes";
+		case "bFixReduceMouseLag": return "ReduceMouseLag=False; reduces input latency at same FPS while also increasing FPS";
 		case "bFixNetSettings": return "KeepAliveTime=0.2, Max(Internet)ClientRate=1000000, bDynamicNetSpeed=False, Netspeed 1000000, MaxSimultaneousPings=200, bStandardServersOnly=False";
-		case "bFixResolution": return "DesiredRefreshRate=0, OverrideDesktopRefreshRate=False; prevents overriding desktop resolution which can force low refresh rate";
-		case "bFix90FPS": return "If MaxClientFrameRate=90, set to 200";
+		case "bFixRenderer": return "DesiredRefreshRate=0, OverrideDesktopRefreshRate=False, UseBVO=True for >30% higher CPU FPS in OpenGL";
+		case "bFix90FPS": return "If MaxClientFrameRate<120 or is 200, set to 240";
 		case "bFixMasterServer": return "If a player has at least one Epic master server, replace with the following from the list.";
 		case "SelectedMasterServer": return "333networks/Errorist lower ping to EU, OpenSpy lower ping to NA";
 		case "bDebugClient": return "Message the client if config has been modified";
@@ -159,14 +159,22 @@ simulated function Tick(float dt)
 				SetProperty(PC, "XInterface.GUIController", "MaxSimultaneousPings", PT_int, "200");
 				SetProperty(PC, "GUI2K4.UT2k4ServerBrowser", "bStandardServersOnly", PT_bool, "False");
 			}
-			if(bFixResolution)
+			if(bFixRenderer)
 			{
 				SetProperty(PC, "D3DDrv.D3DRenderDevice", "DesiredRefreshRate", PT_int, "0");
 				SetProperty(PC, "D3DDrv.D3DRenderDevice", "OverrideDesktopRefreshRate", PT_bool, "False");
+				SetProperty(PC, "D3DDrv.D3DRenderDevice", "UseHardwareTL", PT_bool, "True");
+				SetProperty(PC, "D3DDrv.D3DRenderDevice", "UseHardwareVS", PT_bool, "True");
+				SetProperty(PC, "D3DDrv.D3DRenderDevice", "UseVSync", PT_bool, "False");
 				SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "DesiredRefreshRate", PT_int, "0");
 				SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "OverrideDesktopRefreshRate", PT_bool, "False");
+				SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "UseHardwareTL", PT_bool, "True");
+				SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "UseHardwareVS", PT_bool, "True");
+				SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "UseVSync", PT_bool, "False");
 				SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "DesiredRefreshRate", PT_int, "0");
 				SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "OverrideDesktopRefreshRate", PT_bool, "False");
+				SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "UseVBO", PT_bool, "True");
+				SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "UseVSync", PT_bool, "False");
 			}
 			if(bFix90FPS)
 			{
@@ -174,7 +182,7 @@ simulated function Tick(float dt)
 
 				// also check for 200 to fix previous setting from old version of utoptimizer
 				// 60hz + 200 max fps = aids
-				if (MaxFPS == 90 || MaxFPS == 200)
+				if (MaxFPS < 120 || MaxFPS == 200)
 				{
 					class'Engine.LevelInfo'.default.MaxClientFrameRate = 240;
 					class'Engine.LevelInfo'.static.StaticSaveConfig();
@@ -265,7 +273,7 @@ defaultproperties
 	bFixCacheSizeMegs=true
 	bFixReduceMouseLag=true
 	bFixNetSettings=true
-	bFixResolution=true
+	bFixRenderer=true
 	bFix90FPS=true
 	bFixMasterServer=true
 	SelectedMasterServer=MS_OpenSpy
