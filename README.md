@@ -10,7 +10,7 @@ Options:
 Collect garbage each map load.
 
 ### bSaveCache
-If PurgeCacheDays=30, sets to 180. This prevents the need to constantly redownload server files every 30 days. Takes effect after a game restart.
+Sets PurgeCacheDays=0. This prevents the need to constantly redownload server files every 30 days. Takes effect after a game restart.
 
 ### bFixCacheSizeMegs
 Sets CacheSizeMegs=1. Some players like to set this higher than the default of 32 which results in the game running into the virtual memory limit sooner and crashing if enough content is loaded. CacheSizeMegs=1 has been tested to work fine, so it will save a small amount of memory over the default 32. Takes effect after a game restart.
