@@ -99,6 +99,7 @@ simulated function bool SetProperty(PlayerController PC, string PackageProp, str
 
 	if(bModified)
 	{
+        log("UTOptimizer: Modifying "$PackageProp$" "$Prop$" old value="$existingValue$" new value ="$value);
 		PC.ConsoleCommand("set "$cmdArgs$" "$value);
 	}
 
@@ -111,6 +112,7 @@ simulated function Tick(float dt)
 	local float MaxFPS;
 	local bool bHasEpicMasterServer;
 	local int i;
+    local string RenderDevice;
 
 	super.Tick(dt);
 	if(level.NetMode != NM_DedicatedServer)
@@ -119,6 +121,7 @@ simulated function Tick(float dt)
 		PC = Level.GetLocalPlayerController();
 		if(PC != None)
 		{
+            RenderDevice = ConsoleCommand("get Engine.Engine RenderDevice");
 			if(bCollectGarbage)
 			{
 				PC.ConsoleCommand("obj garbage");
@@ -133,10 +136,12 @@ simulated function Tick(float dt)
 			}
 			if(bFixReduceMouseLag)
 			{
-				SetProperty(PC, "D3DDrv.D3DRenderDevice", "ReduceMouseLag", PT_bool, "false");
-				SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "ReduceMouseLag", PT_bool, "false");
-				SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "ReduceMouseLag", PT_bool, "false");
-				SetProperty(PC, "PixoDrv.PixoRenderDevice", "ReduceMouseLag", PT_bool, "false");
+                if(RenderDevice ~= "D3DDrv.D3DRenderDevice")
+                    SetProperty(PC, "D3DDrv.D3DRenderDevice", "ReduceMouseLag", PT_bool, "false");
+                else if(RenderDevice ~= "D3D9Drv.D3D9RenderDevice")
+                    SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "ReduceMouseLag", PT_bool, "false");
+                else if(RenderDevice ~= "OpenGLDrv.OpenGLRenderDevice")
+                    SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "ReduceMouseLag", PT_bool, "false");
 			}
 			if(bFixNetSettings)
 			{
@@ -161,20 +166,29 @@ simulated function Tick(float dt)
 			}
 			if(bFixRenderer)
 			{
-				SetProperty(PC, "D3DDrv.D3DRenderDevice", "DesiredRefreshRate", PT_int, "0");
-				SetProperty(PC, "D3DDrv.D3DRenderDevice", "OverrideDesktopRefreshRate", PT_bool, "False");
-				SetProperty(PC, "D3DDrv.D3DRenderDevice", "UseHardwareTL", PT_bool, "True");
-				SetProperty(PC, "D3DDrv.D3DRenderDevice", "UseHardwareVS", PT_bool, "True");
-				SetProperty(PC, "D3DDrv.D3DRenderDevice", "UseVSync", PT_bool, "False");
-				SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "DesiredRefreshRate", PT_int, "0");
-				SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "OverrideDesktopRefreshRate", PT_bool, "False");
-				SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "UseHardwareTL", PT_bool, "True");
-				SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "UseHardwareVS", PT_bool, "True");
-				SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "UseVSync", PT_bool, "False");
-				SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "DesiredRefreshRate", PT_int, "0");
-				SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "OverrideDesktopRefreshRate", PT_bool, "False");
-				SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "UseVBO", PT_bool, "True");
-				SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "UseVSync", PT_bool, "False");
+                if(RenderDevice ~= "D3DDrv.D3DRenderDevice")
+                {
+                    SetProperty(PC, "D3DDrv.D3DRenderDevice", "DesiredRefreshRate", PT_int, "0");
+                    SetProperty(PC, "D3DDrv.D3DRenderDevice", "OverrideDesktopRefreshRate", PT_bool, "False");
+                    SetProperty(PC, "D3DDrv.D3DRenderDevice", "UseHardwareTL", PT_bool, "True");
+                    SetProperty(PC, "D3DDrv.D3DRenderDevice", "UseHardwareVS", PT_bool, "True");
+                    SetProperty(PC, "D3DDrv.D3DRenderDevice", "UseVSync", PT_bool, "False");
+                }
+                else if(RenderDevice ~= "D3D9Drv.D3D9RenderDevice")
+                {
+                    SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "DesiredRefreshRate", PT_int, "0");
+                    SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "OverrideDesktopRefreshRate", PT_bool, "False");
+                    SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "UseHardwareTL", PT_bool, "True");
+                    SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "UseHardwareVS", PT_bool, "True");
+                    SetProperty(PC, "D3D9Drv.D3D9RenderDevice", "UseVSync", PT_bool, "False");
+                }
+                else if(RenderDevice ~= "OpenGLDrv.OpenGLRenderDevice")
+                {
+                    SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "DesiredRefreshRate", PT_int, "0");
+                    SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "OverrideDesktopRefreshRate", PT_bool, "False");
+                    SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "UseVBO", PT_bool, "True");
+                    SetProperty(PC, "OpenGLDrv.OpenGLRenderDevice", "UseVSync", PT_bool, "False");
+                }
 			}
 			if(bFix90FPS)
 			{
